@@ -1,0 +1,34 @@
+name: Build APK
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar proyecto (descomprime el zip si hace falta)
+        run: |
+          if [ -f settings.gradle ]; then
+            D=.
+          else
+            mkdir -p src_app
+            for z in *.zip; do unzip -oq "$z" -d src_app; done
+            D=$(dirname "$(find src_app -name settings.gradle | head -1)")
+          fi
+          echo "PROJ=$D" >> $GITHUB_ENV
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+      - name: Compilar
+        working-directory: ${{ env.PROJ }}
+        run: gradle assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Italiano-Facile-APK
+          path: ${{ env.PROJ }}/app/build/outputs/apk/debug/app-debug.apk
